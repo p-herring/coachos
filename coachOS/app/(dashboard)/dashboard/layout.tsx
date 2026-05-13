@@ -13,6 +13,7 @@ import {
 import { ThemeToggle } from '@/components/shared/ThemeToggle'
 import { MobileMenu } from '@/components/dashboard/MobileMenu'
 import { SidebarLink } from '@/components/dashboard/SidebarLink'
+import { hasCoachUserId, hasSupabaseEnv } from '@/lib/env'
 
 const NAV_ITEMS = [
   { href: '/dashboard',         label: 'Overview',        icon: LayoutDashboard },
@@ -27,6 +28,25 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
+  if (!hasSupabaseEnv() || !hasCoachUserId()) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-6">
+        <div className="max-w-lg rounded-2xl border bg-card p-8 shadow-sm">
+          <h1 className="text-2xl font-bold">Preview Mode</h1>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Supabase has not been configured in Vercel yet, so authenticated dashboard
+            features are temporarily disabled. The deployment is otherwise live and ready
+            for UI preview.
+          </p>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and
+            `COACH_USER_ID` in Vercel to enable sign-in and protected routes.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   const supabase = await createServerClient()
   const { data: { session } } = await supabase.auth.getSession()
 

@@ -8,6 +8,7 @@
 
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { hasSupabaseEnv } from '@/lib/env'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -16,6 +17,11 @@ export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request: { headers: request.headers },
   })
+
+  // Preview mode: allow the app to render without auth until Supabase is configured.
+  if (!hasSupabaseEnv()) {
+    return response
+  }
 
   // Initialise Supabase client with cookie access
   const supabase = createServerClient(

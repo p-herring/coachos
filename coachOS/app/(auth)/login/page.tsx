@@ -12,6 +12,9 @@ import { ThemeToggle } from '@/components/shared/ThemeToggle'
 import { createBrowserSupabaseClient } from '@/lib/supabase/client'
 
 type OAuthProvider = 'google' | 'apple'
+const isSupabaseConfigured = Boolean(
+  process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+)
 
 export default function LoginPage() {
   return (
@@ -31,8 +34,14 @@ function LoginPageContent() {
   const [isLoading, setIsLoading] = useState(false)
 
   const redirect = searchParams.get('redirect')
+  const configError = searchParams.get('error') === 'supabase_not_configured'
 
   async function handleOAuth(provider: OAuthProvider) {
+    if (!isSupabaseConfigured) {
+      setError('Supabase is not configured for this deployment yet.')
+      return
+    }
+
     setError(null)
     setIsLoading(true)
 
@@ -56,6 +65,12 @@ function LoginPageContent() {
 
   async function handlePasswordSignIn(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+
+    if (!isSupabaseConfigured) {
+      setError('Supabase is not configured for this deployment yet.')
+      return
+    }
+
     setError(null)
     setIsLoading(true)
 
@@ -76,8 +91,9 @@ function LoginPageContent() {
 
   return (
     <LoginPageShell
-      error={error}
+      error={configError ? 'Supabase is not configured for this deployment yet.' : error}
       isLoading={isLoading}
+      isSupabaseConfigured={isSupabaseConfigured}
       email={email}
       password={password}
       onEmailChange={setEmail}
@@ -92,6 +108,7 @@ function LoginPageContent() {
 interface LoginPageShellProps {
   error?: string | null
   isLoading?: boolean
+  isSupabaseConfigured?: boolean
   email?: string
   password?: string
   onEmailChange?: (value: string) => void
@@ -104,6 +121,7 @@ interface LoginPageShellProps {
 function LoginPageShell({
   error = null,
   isLoading = false,
+  isSupabaseConfigured = false,
   email = '',
   password = '',
   onEmailChange,
@@ -134,11 +152,17 @@ function LoginPageShell({
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {!isSupabaseConfigured && (
+            <div className="rounded-lg border border-brand-orange/20 bg-brand-orange/10 px-3 py-2 text-sm text-brand-orange">
+              Preview mode is active. Supabase auth hasn&apos;t been configured in Vercel yet,
+              so sign-in is temporarily disabled.
+            </div>
+          )}
           <Button
             type="button"
             variant="outline"
             className="w-full"
-            disabled={isLoading}
+            disabled={isLoading || !isSupabaseConfigured}
             onClick={onGoogle}
           >
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Globe className="mr-2 h-4 w-4" />}
@@ -148,7 +172,7 @@ function LoginPageShell({
             type="button"
             variant="outline"
             className="w-full"
-            disabled={isLoading}
+            disabled={isLoading || !isSupabaseConfigured}
             onClick={onApple}
           >
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Apple className="mr-2 h-4 w-4" />}
@@ -191,7 +215,7 @@ function LoginPageShell({
                 {error}
               </p>
             )}
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full" disabled={isLoading || !isSupabaseConfigured}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Sign in with email
             </Button>
