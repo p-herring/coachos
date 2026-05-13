@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useMemo, useState } from 'react'
+import { Suspense, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Apple, Globe, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -108,14 +108,26 @@ function LoginPageContent({
     () => (isSupabaseConfigured ? createBrowserSupabaseClient() : null),
     [isSupabaseConfigured]
   )
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const emailRef = useRef<HTMLInputElement | null>(null)
+  const passwordRef = useRef<HTMLInputElement | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
   const redirect = searchParams.get('redirect')
   const configError = searchParams.get('error') === 'supabase_not_configured'
+
+  function getCredentials() {
+    const email = emailRef.current?.value.trim() ?? ''
+    const password = passwordRef.current?.value ?? ''
+
+    if (!email || !password) {
+      setError('Enter your email and password first.')
+      return null
+    }
+
+    return { email, password }
+  }
 
   async function handleOAuth(provider: OAuthProvider) {
     if (!isSupabaseConfigured || !supabase) {
@@ -153,14 +165,25 @@ function LoginPageContent({
       return
     }
 
+    const credentials = getCredentials()
+    if (!credentials) {
+      return
+    }
+
     setError(null)
     setNotice(null)
     setIsLoading(true)
 
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    let authError: { message: string } | null = null
+
+    try {
+      const result = await supabase.auth.signInWithPassword(credentials)
+      authError = result.error
+    } catch (err) {
+      authError = {
+        message: err instanceof Error ? err.message : 'Sign-in failed',
+      }
+    }
 
     if (authError) {
       setError(getFriendlyAuthError(authError.message))
@@ -178,18 +201,34 @@ function LoginPageContent({
       return
     }
 
+    const credentials = getCredentials()
+    if (!credentials) {
+      return
+    }
+
     setError(null)
     setNotice(null)
     setIsLoading(true)
 
     const callbackUrl = redirect?.startsWith('/') ? redirect : '/dashboard'
-    const { data, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: new URL('/dashboard', window.location.origin).toString(),
-      },
-    })
+    let data: { session: unknown | null } | null = null
+    let authError: { message: string } | null = null
+
+    try {
+      const result = await supabase.auth.signUp({
+        ...credentials,
+        options: {
+          emailRedirectTo: new URL('/dashboard', window.location.origin).toString(),
+        },
+      })
+
+      data = result.data
+      authError = result.error
+    } catch (err) {
+      authError = {
+        message: err instanceof Error ? err.message : 'Account creation failed',
+      }
+    }
 
     if (authError) {
       setError(getFriendlyAuthError(authError.message))
@@ -197,7 +236,7 @@ function LoginPageContent({
       return
     }
 
-    if (data.session) {
+    if (data?.session) {
       router.replace(callbackUrl)
       router.refresh()
       return
@@ -272,10 +311,9 @@ function LoginPageContent({
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
+                ref={emailRef}
                 type="email"
                 autoComplete="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
                 placeholder="you@example.com"
                 required
               />
@@ -284,10 +322,9 @@ function LoginPageContent({
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
+                ref={passwordRef}
                 type="password"
                 autoComplete="current-password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
                 placeholder="••••••••"
                 required
               />
@@ -310,7 +347,7 @@ function LoginPageContent({
               type="button"
               variant="secondary"
               className="w-full"
-              disabled={isLoading || !isSupabaseConfigured || !email || !password}
+              disabled={isLoading || !isSupabaseConfigured}
               onClick={handleCreateCoachAccount}
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
