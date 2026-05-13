@@ -77,7 +77,6 @@ create policy "coach_full_access_sessions"
   with check (coach_id = auth.uid());
 
 -- Client: read sessions that belong to their published plans
--- Client: update only completion fields (completed, completed_at, rpe, completion_notes)
 create policy "client_read_own_sessions"
   on sessions for select
   using (
@@ -90,24 +89,9 @@ create policy "client_read_own_sessions"
       where status = 'published'
     )
   );
-
-create policy "client_update_completion"
-  on sessions for update
-  using (
-    client_id in (
-      select id from clients
-      where portal_user_id = auth.uid()
-    )
-  )
-  -- Clients may ONLY update these four columns
-  with check (
-    coach_id = coach_id   -- unchanged
-    and client_id = client_id
-    and session_date = session_date
-    and name = name
-  );
--- Note: for tighter column-level restriction, use a Supabase Edge Function
--- to handle client session updates rather than direct DB access.
+-- Session completion updates should go through a server-side route using the
+-- service role. PostgreSQL RLS cannot safely enforce field-level updates here,
+-- so we intentionally keep direct client updates disabled for now.
 
 
 -- ─── checkins ────────────────────────────────────────────────────────────────

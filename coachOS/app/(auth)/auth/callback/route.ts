@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { hasCoachUserId, hasSupabaseEnv, isBootstrapMode } from '@/lib/env'
+import { hasSupabaseEnv, isBootstrapMode } from '@/lib/env'
 
 export async function GET(request: NextRequest) {
   if (!hasSupabaseEnv()) {

@@ -33,13 +33,14 @@ interface ToolCallEvent {
 }
 
 interface SSEEvent {
-  type: 'text' | 'tool_call' | 'tool_result' | 'error'
+  type: 'text' | 'tool_call' | 'tool_result' | 'error' | 'conversation'
   text?: string
   tool?: string
   input?: Record<string, unknown>
   success?: boolean
   error?: string
   message?: string
+  conversation_id?: string
 }
 
 // ─── Quick action suggestions ─────────────────────────────────────────────────
@@ -184,6 +185,10 @@ export default function CommandCentrePage() {
           let event: SSEEvent
           try { event = JSON.parse(data) } catch { continue }
 
+          if (event.type === 'conversation' && event.conversation_id) {
+            setConversationId(event.conversation_id)
+          }
+
           if (event.type === 'text' && event.text) {
             setMessages(prev => prev.map(m =>
               m.id === assistantId
@@ -298,7 +303,7 @@ export default function CommandCentrePage() {
                 </div>
                 <h2 className="text-xl font-semibold">Command Centre</h2>
                 <p className="text-muted-foreground mt-1 text-sm">
-                  Tell me what needs doing. I'll handle it.
+                  Tell me what needs doing. I&apos;ll handle it.
                 </p>
               </div>
 

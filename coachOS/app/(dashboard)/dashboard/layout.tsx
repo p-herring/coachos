@@ -13,7 +13,7 @@ import {
 import { ThemeToggle } from '@/components/shared/ThemeToggle'
 import { MobileMenu } from '@/components/dashboard/MobileMenu'
 import { SidebarLink } from '@/components/dashboard/SidebarLink'
-import { hasCoachUserId, hasSupabaseEnv, isBootstrapMode } from '@/lib/env'
+import { hasSupabaseEnv, isBootstrapMode } from '@/lib/env'
 
 const NAV_ITEMS = [
   { href: '/dashboard',         label: 'Overview',        icon: LayoutDashboard },

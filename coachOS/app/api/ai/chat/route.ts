@@ -209,10 +209,24 @@ export async function POST(req: NextRequest) {
       context: typeof context
     }) => Promise<unknown>
   }
+  const aiConversationsInsertTable = supabase.from('ai_conversations') as unknown as {
+    insert: (values: {
+      coach_id: string
+      title: string
+      messages: typeof messages
+      context: typeof context
+    }) => {
+      select: (columns: string) => {
+        single: () => Promise<{ data: { id: string } | null }>
+      }
+    }
+  }
 
   // ── Save conversation to DB (async, non-blocking) ───────────────────────
   // We fire-and-forget the save so it doesn't delay the stream.
   // The conversation is saved/updated after each user message.
+
+  let resolvedConversationId = conversation_id
 
   if (conversation_id) {
     // Update existing conversation
@@ -223,11 +237,16 @@ export async function POST(req: NextRequest) {
   } else {
     // Create new conversation (title = first 60 chars of first user message)
     const firstUserMessage = messages.find(m => m.role === 'user')?.content ?? ''
-    aiConversationsTable.insert({
-      coach_id: session.user.id,
-      title: firstUserMessage.slice(0, 60),
-      ...aiConversationPayload,
-    }).then(() => {})
+    const { data: insertedConversation } = await aiConversationsInsertTable
+      .insert({
+        coach_id: session.user.id,
+        title: firstUserMessage.slice(0, 60),
+        ...aiConversationPayload,
+      })
+      .select('id')
+      .single()
+
+    resolvedConversationId = insertedConversation?.id
   }
 
   // ── Stream Claude response ──────────────────────────────────────────────
@@ -242,7 +261,35 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  return new Response(responseStream, {
+  const encoder = new TextEncoder()
+  const decoratedStream = new ReadableStream({
+    async start(controller) {
+      if (resolvedConversationId) {
+        controller.enqueue(
+          encoder.encode(
+            `data: ${JSON.stringify({
+              type: 'conversation',
+              conversation_id: resolvedConversationId,
+            })}\n\n`
+          )
+        )
+      }
+
+      const reader = responseStream.getReader()
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) {
+          controller.close()
+          break
+        }
+
+        controller.enqueue(value)
+      }
+    },
+  })
+
+  return new Response(decoratedStream, {
     headers: {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
