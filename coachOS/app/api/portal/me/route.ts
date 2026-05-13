@@ -3,9 +3,9 @@ import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 
 export async function GET() {
   const supabase = await createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (!session) {
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
   }
 
@@ -15,7 +15,7 @@ export async function GET() {
   const { data: client, error } = await service
     .from('clients')
     .select('id, full_name, email, client_type, goals, health_notes, status, checkin_cadence, next_checkin_date, portal_user_id, coach_id')
-    .eq('portal_user_id', session.user.id)
+    .eq('portal_user_id', user.id)
     .single()
 
   if (error || !client) {

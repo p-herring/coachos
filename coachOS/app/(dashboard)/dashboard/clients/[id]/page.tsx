@@ -33,10 +33,10 @@ function ScoreBar({ value, max = 5 }: { value: number | null; max?: number }) {
 export default async function ClientProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) redirect('/login')
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
-  const coachId = session.user.id
+  const coachId = user.id
 
   const [{ data: client }, { data: recentCheckins }, { data: notes }, { data: activePlan }] = await Promise.all([
     supabase.from('clients').select('*').eq('id', id).eq('coach_id', coachId).single(),

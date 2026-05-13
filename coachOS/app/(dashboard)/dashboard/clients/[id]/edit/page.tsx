@@ -7,14 +7,14 @@ import { ClientForm } from '@/components/dashboard/ClientForm'
 export default async function EditClientPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) redirect('/login')
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
   const { data: client } = await supabase
     .from('clients')
     .select('*')
     .eq('id', id)
-    .eq('coach_id', session.user.id)
+    .eq('coach_id', user.id)
     .single()
 
   if (!client) notFound()

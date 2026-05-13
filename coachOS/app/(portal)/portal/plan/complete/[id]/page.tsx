@@ -22,8 +22,8 @@ export default async function CompleteSessionPage({
 }) {
   const { id } = await params
   const supabase = await createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) redirect('/login')
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return <p className="text-muted-foreground">Portal not yet configured.</p>
@@ -33,7 +33,7 @@ export default async function CompleteSessionPage({
   const { data: client } = await service
     .from('clients')
     .select('id')
-    .eq('portal_user_id', session.user.id)
+    .eq('portal_user_id', user.id)
     .single()
 
   if (!client) redirect('/portal/not-linked')

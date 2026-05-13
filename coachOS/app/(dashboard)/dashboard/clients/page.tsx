@@ -23,10 +23,10 @@ export default async function ClientsPage({
   const status = STATUS_TABS.find(t => t.value === rawStatus)?.value ?? 'all'
 
   const supabase = await createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) redirect('/login')
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
-  const coachId = session.user.id
+  const coachId = user.id
   const today = new Date().toISOString().split('T')[0]
 
   let query = supabase

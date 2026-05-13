@@ -3,9 +3,9 @@ import { createServerClient } from '@/lib/supabase/server'
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (!session || session.user.id !== process.env.COACH_USER_ID) {
+  if (!user || user.id !== process.env.COACH_USER_ID) {
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
   }
 

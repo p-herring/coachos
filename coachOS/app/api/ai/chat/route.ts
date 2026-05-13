@@ -49,14 +49,14 @@ export async function POST(req: NextRequest) {
 
   // Auth: verify Pete is logged in
   const supabase = await createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (!session) {
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
   }
 
   // Belt-and-suspenders: verify this is actually Pete
-  if (session.user.id !== process.env.COACH_USER_ID) {
+  if (user.id !== process.env.COACH_USER_ID) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -69,13 +69,13 @@ export async function POST(req: NextRequest) {
     { count: scheduledPostCount },
   ] = await Promise.all([
     supabase.from('clients').select('*', { count: 'exact', head: true })
-      .eq('coach_id', session.user.id).eq('status', 'active'),
+      .eq('coach_id', user.id).eq('status', 'active'),
     supabase.from('clients').select('*', { count: 'exact', head: true })
-      .eq('coach_id', session.user.id)
+      .eq('coach_id', user.id)
       .eq('status', 'active')
       .lt('next_checkin_date', new Date().toISOString().split('T')[0]),
     supabase.from('posts').select('*', { count: 'exact', head: true })
-      .eq('coach_id', session.user.id).eq('status', 'scheduled'),
+      .eq('coach_id', user.id).eq('status', 'scheduled'),
   ])
 
   // Fetch linked entity details if context provided
@@ -239,7 +239,7 @@ export async function POST(req: NextRequest) {
     const firstUserMessage = messages.find(m => m.role === 'user')?.content ?? ''
     const { data: insertedConversation } = await aiConversationsInsertTable
       .insert({
-        coach_id: session.user.id,
+        coach_id: user.id,
         title: firstUserMessage.slice(0, 60),
         ...aiConversationPayload,
       })
@@ -251,7 +251,7 @@ export async function POST(req: NextRequest) {
 
   // ── Stream Claude response ──────────────────────────────────────────────
 
-  const accessToken = session.access_token
+  const accessToken = ''
 
   const responseStream = await streamChat({
     messages,

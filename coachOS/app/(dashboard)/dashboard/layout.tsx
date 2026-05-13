@@ -48,10 +48,10 @@ export default async function DashboardLayout({
   }
 
   const supabase = await createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user } } = await supabase.auth.getUser()
   const bootstrapMode = isBootstrapMode()
 
-  if (!session || (!bootstrapMode && session.user.id !== process.env.COACH_USER_ID)) {
+  if (!user || (!bootstrapMode && user.id !== process.env.COACH_USER_ID)) {
     redirect('/login')
   }
 
@@ -118,7 +118,7 @@ export default async function DashboardLayout({
             <div className="border-b bg-brand-orange/10 px-6 py-3 text-sm text-brand-orange">
               Bootstrap mode is active. You&apos;re signed in, but `COACH_USER_ID` has not been
               set in Vercel yet. Your current user ID is{' '}
-              <span className="font-mono">{session.user.id}</span>.
+              <span className="font-mono">{user.id}</span>.
             </div>
           )}
           {children}

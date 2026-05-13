@@ -22,8 +22,8 @@ export default async function DashboardPage() {
   }
 
   const supabase = await createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) redirect('/login')
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
   if (!hasCoachUserId()) {
     return (
@@ -35,7 +35,7 @@ export default async function DashboardPage() {
         </p>
         <div className="rounded-xl border bg-card p-5">
           <p className="text-sm font-medium">Current signed-in user ID</p>
-          <p className="mt-2 font-mono text-sm">{session.user.id}</p>
+          <p className="mt-2 font-mono text-sm">{user.id}</p>
         </div>
         <p className="text-sm text-muted-foreground">
           Once that environment variable is set, dashboard auth and coach-only routes will lock to
@@ -45,7 +45,7 @@ export default async function DashboardPage() {
     )
   }
 
-  const coachId = session.user.id
+  const coachId = user.id
   const today = new Date().toISOString().split('T')[0]
 
   // ── Fetch dashboard data ─────────────────────────────────────────────────

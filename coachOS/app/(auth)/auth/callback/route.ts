@@ -28,19 +28,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(loginUrl)
     }
     // Re-fetch session after verification
-    const { data: { session } } = await supabase.auth.getSession()
-    return NextResponse.redirect(new URL(resolveNext(next, session?.user.id), request.url))
+    const { data: { user } } = await supabase.auth.getUser()
+    return NextResponse.redirect(new URL(resolveNext(next, user?.id), request.url))
   }
 
   // PKCE / OAuth flow (code)
   if (code) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-    if (error || !data.session) {
+    if (error || !data.user) {
       const loginUrl = new URL('/login', request.url)
       loginUrl.searchParams.set('error', 'oauth_callback_failed')
       return NextResponse.redirect(loginUrl)
     }
-    return NextResponse.redirect(new URL(resolveNext(next, data.session.user.id), request.url))
+    return NextResponse.redirect(new URL(resolveNext(next, data.user.id), request.url))
   }
 
   return NextResponse.redirect(new URL('/login', request.url))

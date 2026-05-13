@@ -13,8 +13,8 @@ function getMondayOfWeek(date: Date): string {
 
 export default async function PortalHomePage() {
   const supabase = await createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) redirect('/login')
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return (
@@ -29,7 +29,7 @@ export default async function PortalHomePage() {
   const { data: client } = await service
     .from('clients')
     .select('id, full_name, goals, health_notes, status, checkin_cadence, next_checkin_date')
-    .eq('portal_user_id', session.user.id)
+    .eq('portal_user_id', user.id)
     .single()
 
   if (!client) redirect('/portal/not-linked')

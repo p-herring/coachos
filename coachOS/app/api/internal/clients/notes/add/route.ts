@@ -10,9 +10,9 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (!session || session.user.id !== process.env.COACH_USER_ID) {
+  if (!user || user.id !== process.env.COACH_USER_ID) {
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
   }
 
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { client_id, note, note_type } = parsed.data
-  const coachId = session.user.id
+  const coachId = user.id
 
   const { data: client } = await supabase
     .from('clients')

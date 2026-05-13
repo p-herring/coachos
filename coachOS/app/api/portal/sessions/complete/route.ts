@@ -10,9 +10,9 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (!session) {
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
   }
 
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
   const { data: client, error: clientError } = await service
     .from('clients')
     .select('id')
-    .eq('portal_user_id', session.user.id)
+    .eq('portal_user_id', user.id)
     .single()
 
   if (clientError || !client) {

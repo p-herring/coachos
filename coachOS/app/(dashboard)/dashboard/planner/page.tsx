@@ -14,10 +14,10 @@ function getMondayOfWeek(date: Date): string {
 
 export default async function PlannerPage() {
   const supabase = await createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) redirect('/login')
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
-  const coachId = session.user.id
+  const coachId = user.id
   const thisWeek = getMondayOfWeek(new Date())
 
   const { data: clients } = await supabase
