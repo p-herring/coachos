@@ -31,6 +31,7 @@ function LoginPageContent() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
   const redirect = searchParams.get('redirect')
@@ -43,6 +44,7 @@ function LoginPageContent() {
     }
 
     setError(null)
+    setNotice(null)
     setIsLoading(true)
 
     const callbackUrl = new URL('/auth/callback', window.location.origin)
@@ -72,6 +74,7 @@ function LoginPageContent() {
     }
 
     setError(null)
+    setNotice(null)
     setIsLoading(true)
 
     const { error: authError } = await supabase.auth.signInWithPassword({
@@ -89,9 +92,45 @@ function LoginPageContent() {
     router.refresh()
   }
 
+  async function handleCreateCoachAccount() {
+    if (!isSupabaseConfigured) {
+      setError('Supabase is not configured for this deployment yet.')
+      return
+    }
+
+    setError(null)
+    setNotice(null)
+    setIsLoading(true)
+
+    const callbackUrl = redirect?.startsWith('/') ? redirect : '/dashboard'
+    const { data, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: new URL('/dashboard', window.location.origin).toString(),
+      },
+    })
+
+    if (authError) {
+      setError(authError.message)
+      setIsLoading(false)
+      return
+    }
+
+    if (data.session) {
+      router.replace(callbackUrl)
+      router.refresh()
+      return
+    }
+
+    setNotice('Account created. Check your email for the Supabase confirmation link if required, then sign in.')
+    setIsLoading(false)
+  }
+
   return (
     <LoginPageShell
       error={configError ? 'Supabase is not configured for this deployment yet.' : error}
+      notice={notice}
       isLoading={isLoading}
       isSupabaseConfigured={isSupabaseConfigured}
       email={email}
@@ -101,12 +140,14 @@ function LoginPageContent() {
       onGoogle={() => handleOAuth('google')}
       onApple={() => handleOAuth('apple')}
       onSubmit={handlePasswordSignIn}
+      onCreateCoachAccount={handleCreateCoachAccount}
     />
   )
 }
 
 interface LoginPageShellProps {
   error?: string | null
+  notice?: string | null
   isLoading?: boolean
   isSupabaseConfigured?: boolean
   email?: string
@@ -116,10 +157,12 @@ interface LoginPageShellProps {
   onGoogle?: () => void
   onApple?: () => void
   onSubmit?: (event: React.FormEvent<HTMLFormElement>) => void
+  onCreateCoachAccount?: () => void
 }
 
 function LoginPageShell({
   error = null,
+  notice = null,
   isLoading = false,
   isSupabaseConfigured = false,
   email = '',
@@ -129,6 +172,7 @@ function LoginPageShell({
   onGoogle,
   onApple,
   onSubmit,
+  onCreateCoachAccount,
 }: LoginPageShellProps) {
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-b from-background via-background to-muted/30 px-4 py-12">
@@ -215,9 +259,24 @@ function LoginPageShell({
                 {error}
               </p>
             )}
+            {notice && (
+              <p className="rounded-lg border border-brand-green/20 bg-brand-green/10 px-3 py-2 text-sm text-brand-green">
+                {notice}
+              </p>
+            )}
             <Button type="submit" className="w-full" disabled={isLoading || !isSupabaseConfigured}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Sign in with email
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full"
+              disabled={isLoading || !isSupabaseConfigured || !email || !password}
+              onClick={onCreateCoachAccount}
+            >
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Create coach account
             </Button>
           </form>
         </CardContent>

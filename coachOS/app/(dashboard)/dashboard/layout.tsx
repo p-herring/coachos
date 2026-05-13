@@ -13,7 +13,7 @@ import {
 import { ThemeToggle } from '@/components/shared/ThemeToggle'
 import { MobileMenu } from '@/components/dashboard/MobileMenu'
 import { SidebarLink } from '@/components/dashboard/SidebarLink'
-import { hasCoachUserId, hasSupabaseEnv } from '@/lib/env'
+import { hasCoachUserId, hasSupabaseEnv, isBootstrapMode } from '@/lib/env'
 
 const NAV_ITEMS = [
   { href: '/dashboard',         label: 'Overview',        icon: LayoutDashboard },
@@ -28,7 +28,7 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  if (!hasSupabaseEnv() || !hasCoachUserId()) {
+  if (!hasSupabaseEnv()) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-6">
         <div className="max-w-lg rounded-2xl border bg-card p-8 shadow-sm">
@@ -49,8 +49,9 @@ export default async function DashboardLayout({
 
   const supabase = await createServerClient()
   const { data: { session } } = await supabase.auth.getSession()
+  const bootstrapMode = isBootstrapMode()
 
-  if (!session || session.user.id !== process.env.COACH_USER_ID) {
+  if (!session || (!bootstrapMode && session.user.id !== process.env.COACH_USER_ID)) {
     redirect('/login')
   }
 
@@ -113,6 +114,13 @@ export default async function DashboardLayout({
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto">
+          {bootstrapMode && (
+            <div className="border-b bg-brand-orange/10 px-6 py-3 text-sm text-brand-orange">
+              Bootstrap mode is active. You&apos;re signed in, but `COACH_USER_ID` has not been
+              set in Vercel yet. Your current user ID is{' '}
+              <span className="font-mono">{session.user.id}</span>.
+            </div>
+          )}
           {children}
         </main>
       </div>

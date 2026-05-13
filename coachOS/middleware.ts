@@ -8,7 +8,7 @@
 
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { hasSupabaseEnv } from '@/lib/env'
+import { hasCoachUserId, hasSupabaseEnv, isBootstrapMode } from '@/lib/env'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -58,7 +58,7 @@ export async function middleware(request: NextRequest) {
     }
 
     // Verify this is Pete's account
-    if (session.user.id !== process.env.COACH_USER_ID) {
+    if (hasCoachUserId() && session.user.id !== process.env.COACH_USER_ID) {
       // Authenticated but not the coach — redirect to portal
       // (they might be a client who stumbled onto the wrong URL)
       return NextResponse.redirect(new URL('/portal', request.url))
@@ -67,6 +67,10 @@ export async function middleware(request: NextRequest) {
 
   // ── /portal routes — clients only ────────────────────────────────────────
   if (pathname.startsWith('/portal') && !pathname.startsWith('/portal/not-linked') && !pathname.startsWith('/portal/inactive')) {
+    if (isBootstrapMode()) {
+      return response
+    }
+
     if (!session) {
       const loginUrl = new URL('/login', request.url)
       loginUrl.searchParams.set('redirect', pathname)
@@ -91,6 +95,10 @@ export async function middleware(request: NextRequest) {
 
   // ── /login — redirect if already authenticated ────────────────────────────
   if (pathname === '/login' && session) {
+    if (isBootstrapMode()) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+
     // Coach → dashboard
     if (session.user.id === process.env.COACH_USER_ID) {
       return NextResponse.redirect(new URL('/dashboard', request.url))

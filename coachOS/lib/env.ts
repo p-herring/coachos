@@ -8,3 +8,7 @@ export function hasSupabaseEnv() {
 export function hasCoachUserId() {
   return Boolean(process.env.COACH_USER_ID)
 }
+
+export function isBootstrapMode() {
+  return hasSupabaseEnv() && !hasCoachUserId()
+}

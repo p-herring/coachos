@@ -7,11 +7,43 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase/server'
 import { Users, CalendarDays, MessageSquare, Bot, AlertCircle, CheckCircle2, Clock } from 'lucide-react'
+import { hasCoachUserId, hasSupabaseEnv } from '@/lib/env'
 
 export default async function DashboardPage() {
+  if (!hasSupabaseEnv()) {
+    return (
+      <div className="p-6 max-w-3xl mx-auto">
+        <h1 className="text-2xl font-bold">Preview Mode</h1>
+        <p className="mt-2 text-muted-foreground">
+          Supabase is not configured for this deployment yet.
+        </p>
+      </div>
+    )
+  }
+
   const supabase = await createServerClient()
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) redirect('/login')
+
+  if (!hasCoachUserId()) {
+    return (
+      <div className="p-6 max-w-3xl mx-auto space-y-4">
+        <h1 className="text-2xl font-bold">Bootstrap coachOS</h1>
+        <p className="text-muted-foreground">
+          Your Supabase project is connected and you&apos;re signed in. The last setup step is to
+          save your coach user ID into Vercel as `COACH_USER_ID`.
+        </p>
+        <div className="rounded-xl border bg-card p-5">
+          <p className="text-sm font-medium">Current signed-in user ID</p>
+          <p className="mt-2 font-mono text-sm">{session.user.id}</p>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Once that environment variable is set, dashboard auth and coach-only routes will lock to
+          this account.
+        </p>
+      </div>
+    )
+  }
 
   const coachId = session.user.id
   const today = new Date().toISOString().split('T')[0]

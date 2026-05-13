@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { hasCoachUserId, hasSupabaseEnv } from '@/lib/env'
+import { hasCoachUserId, hasSupabaseEnv, isBootstrapMode } from '@/lib/env'
 
 export async function GET(request: NextRequest) {
-  if (!hasSupabaseEnv() || !hasCoachUserId()) {
+  if (!hasSupabaseEnv()) {
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('error', 'supabase_not_configured')
     return NextResponse.redirect(loginUrl)
@@ -24,6 +24,10 @@ export async function GET(request: NextRequest) {
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('error', 'oauth_callback_failed')
     return NextResponse.redirect(loginUrl)
+  }
+
+  if (isBootstrapMode()) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
   const isCoach = data.session.user.id === process.env.COACH_USER_ID
