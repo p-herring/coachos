@@ -7,6 +7,7 @@
 //   4. Redirect logic after login (coach → /dashboard, client → /portal)
 
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { NextResponse, type NextRequest } from 'next/server'
 import { hasCoachUserId, hasSupabaseEnv, isBootstrapMode } from '@/lib/env'
 
@@ -77,8 +78,18 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl)
     }
 
-    // Check they have a linked client record
-    const { data: client } = await supabase
+    // Use service role to check the client record — the clients table has no portal-user RLS policy
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!serviceKey) {
+      // Service key not yet configured — allow through so portal pages can show appropriate state
+      return response
+    }
+    const serviceClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      serviceKey,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    )
+    const { data: client } = await serviceClient
       .from('clients')
       .select('id, status')
       .eq('portal_user_id', session.user.id)
