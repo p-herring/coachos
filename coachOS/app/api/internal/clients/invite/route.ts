@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
 
   const { error: inviteError } = await service.auth.admin.inviteUserByEmail(client.email, {
     data: { full_name: client.full_name },
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/portal`,
+    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
   })
 
   if (inviteError) {
