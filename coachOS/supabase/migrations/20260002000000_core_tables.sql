@@ -60,7 +60,7 @@ create index clients_coach_id_idx on clients (coach_id);
 create index clients_status_idx on clients (coach_id, status);
 create index clients_portal_user_idx on clients (portal_user_id);
 -- Trigram index for fuzzy name search in CRM
-create index clients_name_trgm_idx on clients using gin (full_name gin_trgm_ops);
+create index clients_name_trgm_idx on clients using gin (full_name extensions.gin_trgm_ops);
 
 
 -- ─── Programs ─────────────────────────────────────────────────────────────────
@@ -208,6 +208,7 @@ create trigger sessions_updated_at
 
 create index sessions_client_date_idx on sessions (client_id, session_date desc);
 create index sessions_plan_idx on sessions (weekly_plan_id);
+create index sessions_program_idx on sessions (program_id) where program_id is not null;
 create index sessions_type_idx on sessions (coach_id, session_type);
 
 
@@ -259,6 +260,7 @@ create table client_notes (
 );
 
 create index client_notes_client_idx on client_notes (client_id, created_at desc);
+create index client_notes_coach_idx on client_notes (coach_id);
 
 
 -- ─── Posts (Social Media Hub) ─────────────────────────────────────────────────

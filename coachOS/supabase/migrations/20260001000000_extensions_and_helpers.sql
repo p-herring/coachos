@@ -6,7 +6,7 @@
 
 create extension if not exists "uuid-ossp";
 create extension if not exists "pgcrypto";
-create extension if not exists "pg_trgm"; -- for fuzzy client name search
+create extension if not exists "pg_trgm" with schema extensions; -- for fuzzy client name search
 
 
 -- ─── updated_at trigger ───────────────────────────────────────────────────────
@@ -18,7 +18,8 @@ begin
   new.updated_at = now();
   return new;
 end;
-$$ language plpgsql;
+$$ language plpgsql
+set search_path = public;
 
 
 -- ─── Client invite + portal linking function ──────────────────────────────────
@@ -35,11 +36,14 @@ begin
     and portal_user_id is null;
   return new;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer
+set search_path = public;
 
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure link_portal_user();
+
+revoke all on function link_portal_user() from public, anon, authenticated;
 
 
 -- ─── Checkin overdue helper ───────────────────────────────────────────────────
@@ -51,4 +55,5 @@ returns boolean as $$
 begin
   return next_date < current_date;
 end;
-$$ language plpgsql immutable;
+$$ language plpgsql immutable
+set search_path = public;
